@@ -744,17 +744,27 @@ async function exportLocal(share) {
     const name = safeName(summaryRec.job) + '.xlsx';
     const file = new File([blob], name, { type: XLSX_MIME });
     if (share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: `MR · Job ${summaryRec.job}` });
-      return;
+      try {
+        await navigator.share({ files: [file], title: `MR · Job ${summaryRec.job}` });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        // Android Chrome refuses to share .xlsx files ("Permission denied"): save it instead.
+      }
     }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    downloadBlob(blob, name);
+    if (share) toast(`This phone can't share Excel files directly · ${name} saved to Downloads`);
   } catch (e) {
     if (e.name !== 'AbortError') toast(e.message || 'Export failed', 'err');
   }
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
 /* ---------- Excel ---------- */

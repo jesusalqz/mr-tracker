@@ -1,5 +1,5 @@
 // MR Tracker service worker: offline app shell + stale-while-revalidate.
-const VERSION = 'mrt-v2';
+const VERSION = 'mrt-v3';
 const SHELL = [
   './',
   './index.html',
