@@ -1,5 +1,7 @@
-// MR Tracker service worker: offline app shell + stale-while-revalidate.
-const VERSION = 'mrt-v3';
+// MR Tracker service worker: offline app shell.
+// App files: network-first (always the newest version when online, cache when offline).
+// CDN libraries and fonts: cache-first.
+const VERSION = 'mrt-v4';
 const SHELL = [
   './',
   './index.html',
@@ -14,7 +16,13 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser HTTP cache (GitHub Pages caches files for 10 min),
+  // so a new version never gets stored with old files.
+  e.waitUntil(
+    caches.open(VERSION)
+      .then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -31,17 +39,29 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.hostname.endsWith('script.google.com') || url.hostname.endsWith('googleusercontent.com')) return;
 
+  if (url.origin === self.location.origin) {
+    e.respondWith(
+      caches.open(VERSION).then(async (cache) => {
+        try {
+          const res = await fetch(req, { cache: 'no-cache' });
+          if (res.ok) cache.put(req, res.clone());
+          return res;
+        } catch {
+          return (await cache.match(req, { ignoreSearch: true }))
+            || (req.mode === 'navigate' ? await cache.match('./index.html') : Response.error());
+        }
+      })
+    );
+    return;
+  }
+
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
-      const cached = await cache.match(req, { ignoreSearch: req.mode === 'navigate' })
-        || (req.mode === 'navigate' ? await cache.match('./index.html') : undefined);
-      const network = fetch(req)
-        .then((res) => {
-          if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
+      const cached = await cache.match(req);
+      if (cached) return cached;
+      const res = await fetch(req);
+      if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
+      return res;
     })
   );
 });

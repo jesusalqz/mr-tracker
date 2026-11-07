@@ -25,6 +25,7 @@ const PALETTE = {
 };
 const LS = { session: 'mrt.session', names: 'mrt.names', settings: 'mrt.settings', lastPress: 'mrt.lastPress' };
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const APP_VERSION = '1.3';
 
 /* ---------- helpers ---------- */
 const $ = (s, el = document) => el.querySelector(s);
@@ -927,6 +928,7 @@ function renderSettings() {
   const st = getSettings();
   $('#s-url').value = st.url;
   $('#s-token').value = st.token;
+  $('.version').textContent = `MR Tracker · v${APP_VERSION}`;
   updatePendingBadge();
 }
 function readSettingsForm() {
