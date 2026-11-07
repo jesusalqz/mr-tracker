@@ -1,5 +1,5 @@
 // MR Tracker service worker: offline app shell + stale-while-revalidate.
-const VERSION = 'mrt-v1';
+const VERSION = 'mrt-v2';
 const SHELL = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const SHELL = [
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
 ];
 

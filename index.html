@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1013">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MR Tracker">
+<meta name="format-detection" content="telephone=no">
 <title>MR Tracker</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -173,7 +177,10 @@
       <button class="icon-btn" id="btn-sum-back" aria-label="Back" hidden>
         <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
-      <b class="title">CHANGEOVER REPORT</b>
+      <b class="title">MR REPORT</b>
+      <button class="icon-btn danger" id="btn-sum-delete" aria-label="Delete from history" hidden>
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+      </button>
     </header>
     <div class="hazard hazard-green"></div>
     <div class="scroll" id="sum-body"></div>
@@ -197,9 +204,18 @@
         <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
       <b class="title">HISTORY</b>
+      <button class="text-btn" id="btn-hist-select" hidden>SELECT</button>
     </header>
     <div class="hazard"></div>
     <div class="scroll" id="hist-body"></div>
+    <div class="dock" id="hist-dock" hidden>
+      <div class="row">
+        <button class="btn btn-steel small" id="btn-hist-cancel"><span>CANCEL</span></button>
+        <button class="btn btn-red small" id="btn-hist-delete" disabled>
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span id="t-hist-delete">DELETE</span>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ SETTINGS ============ -->
@@ -227,7 +243,7 @@
         <div class="queue-line"><span>Pending uploads</span><b id="s-pending">0</b></div>
         <button class="btn btn-steel small" id="btn-s-retry"><span>RETRY NOW</span></button>
       </div>
-      <p class="version">MR Tracker · v1.0</p>
+      <p class="version">MR Tracker · v1.1</p>
     </div>
   </section>
 </div>

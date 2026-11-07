@@ -7,7 +7,7 @@
 
 const PRESSES = [3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const CODES = {
-  Y: ['Make Ready Sleeve', 'Make Ready Time', 'Dirty Anilox', 'Wait for Ink', 'Chamber Problem', 'Anilox Change', 'Other'],
+  Y: ['Make Ready Sleeve', 'Make Ready Time', 'Dirty Anilox', 'Wait for Ink', 'Chamber Problem', 'Anilox Change', 'Wrong Sequence', 'Other'],
   R: ['Mechanical Problem', 'Electrical Problem', 'Maintenance (Mech + Elec)', 'Blade Change', 'No Operator', 'No Assistant', 'Housekeeping', 'Other'],
 };
 const FIRST_CODE = 'Make Ready Sleeve';
@@ -20,7 +20,7 @@ const RATINGS = [
 const GAUGE_MAX_MIN = 75;
 const UNDO_MS = 30000;
 const PALETTE = {
-  Y: ['#FFC400', '#FFE066', '#D99E00', '#FFF0A8', '#A87D00', '#FFAE00', '#EED58A'],
+  Y: ['#FFC400', '#FFE066', '#D99E00', '#FFF0A8', '#A87D00', '#FFAE00', '#EED58A', '#8A6A10'],
   R: ['#E5322D', '#FF7A70', '#A81F1B', '#FFB0A8', '#70120F', '#D9534F', '#F09088', '#4A0C0A'],
 };
 const LS = { session: 'mrt.session', names: 'mrt.names', settings: 'mrt.settings', lastPress: 'mrt.lastPress' };
@@ -168,7 +168,7 @@ function show(name) {
   document.body.classList.toggle('red-mode', name === 'timer' && current()?.cat === 'R');
   if (name === 'setup') renderSetup();
   if (name === 'timer') renderTimer(true);
-  if (name === 'history') renderHistory();
+  if (name === 'history') { setHistSelect(false); renderHistory(); }
   if (name === 'settings') renderSettings();
 }
 document.addEventListener('click', (e) => {
@@ -618,6 +618,7 @@ let summaryRec = null;
 function showSummary(rec, fromHistory) {
   summaryRec = rec;
   $('#btn-sum-back').hidden = !fromHistory;
+  $('#btn-sum-delete').hidden = !fromHistory;
   $('#btn-new').innerHTML = fromHistory ? '<span>BACK TO HISTORY</span>' : '<span>NEW CHANGEOVER</span>';
   $('#btn-new').dataset.mode = fromHistory ? 'history' : 'new';
   show('summary');
@@ -729,6 +730,9 @@ function renderUploadCard() {
 }
 
 $('#btn-sum-back').addEventListener('click', () => show('history'));
+$('#btn-sum-delete').addEventListener('click', async () => {
+  if (summaryRec && await deleteRecords([summaryRec.id])) show('history');
+});
 $('#btn-new').addEventListener('click', () => show($('#btn-new').dataset.mode === 'history' ? 'history' : 'setup'));
 $('#btn-download').addEventListener('click', () => exportLocal(false));
 $('#btn-share').addEventListener('click', () => exportLocal(true));
@@ -946,7 +950,9 @@ async function renderHistory() {
   let list = [];
   try { list = await DB.all('history'); } catch { }
   list.sort((a, b) => b.endedAt - a.endedAt);
+  $('#btn-hist-select').hidden = !list.length;
   if (!list.length) {
+    setHistSelect(false);
     body.innerHTML = '<div class="empty">No changeovers recorded yet.</div>';
     return;
   }
@@ -980,7 +986,8 @@ async function renderHistory() {
     <div class="step-label"><span>${list.length}</span>CHANGEOVERS</div>
     ${list.map((x) => {
       const r = rating(x.totals.y);
-      return `<button class="hitem" data-id="${x.id}">
+      return `<button class="hitem${histSel.has(x.id) ? ' sel' : ''}" data-id="${x.id}">
+        <span class="ck"></span>
         <span class="pl">${pad(x.press)}</span>
         <span class="mid"><b>JOB ${esc(x.job)}</b><span>${fmtDate(x.startedAt)} · ${esc(x.operator)}</span></span>
         <span class="rt"><b style="color:${r.color}">${fmtMS(x.totals.y)}</b>${x.upload?.status === 'done' ? '' : '<span class="up">NOT UPLOADED</span>'}</span>
@@ -990,9 +997,68 @@ async function renderHistory() {
   body.onclick = async (e) => {
     const it = e.target.closest('.hitem');
     if (!it) return;
+    if (histSelecting) {
+      const id = it.dataset.id;
+      if (histSel.has(id)) histSel.delete(id); else histSel.add(id);
+      it.classList.toggle('sel', histSel.has(id));
+      vibrate(20);
+      updateHistDock();
+      return;
+    }
     const rec = await DB.get('history', it.dataset.id);
     if (rec) showSummary(rec, true);
   };
+}
+
+/* history: select & delete */
+let histSelecting = false;
+const histSel = new Set();
+
+function setHistSelect(on) {
+  histSelecting = on;
+  histSel.clear();
+  $('#scr-history').classList.toggle('hist-selecting', on);
+  $('#btn-hist-select').classList.toggle('on', on);
+  $('#btn-hist-select').textContent = on ? 'DONE' : 'SELECT';
+  $('#hist-dock').hidden = !on;
+  $$('#hist-body .hitem.sel').forEach((el) => el.classList.remove('sel'));
+  updateHistDock();
+}
+function updateHistDock() {
+  const n = histSel.size;
+  $('#btn-hist-delete').disabled = !n;
+  $('#t-hist-delete').textContent = n ? `DELETE (${n})` : 'DELETE';
+}
+$('#btn-hist-select').addEventListener('click', () => setHistSelect(!histSelecting));
+$('#btn-hist-cancel').addEventListener('click', () => setHistSelect(false));
+$('#btn-hist-delete').addEventListener('click', async () => {
+  if (await deleteRecords([...histSel])) { setHistSelect(false); renderHistory(); }
+});
+
+// Removes changeovers from this phone only; files already in Drive stay there.
+async function deleteRecords(ids) {
+  const recs = (await Promise.all(ids.map((id) => DB.get('history', id)))).filter(Boolean);
+  if (!recs.length) return false;
+  const pending = recs.filter((r) => r.upload?.status !== 'done').length;
+  const what = recs.length === 1 ? `job ${recs[0].job}` : `${recs.length} changeovers`;
+  const ok = await confirmModal({
+    title: `Delete ${what}?`,
+    text: (pending
+      ? `${pending === recs.length ? (pending === 1 ? 'It was' : 'They were') : `${pending} of them were`} NOT uploaded to Drive yet and will be lost. `
+      : 'Excel files already in Drive are kept. ')
+      + 'This only removes them from this phone.',
+    yes: 'DELETE', no: 'CANCEL', tone: 'red',
+  });
+  if (!ok) return false;
+  for (const r of recs) {
+    for (const g of r.segments) for (const pid of g.photos || []) await DB.del('photos', pid).catch(() => { });
+    await DB.del('queue', r.id);
+    await DB.del('history', r.id);
+  }
+  vibrate(60);
+  toast(`Deleted ${what}`);
+  updatePendingBadge();
+  return true;
 }
 
 /* ---------- lifecycle ---------- */

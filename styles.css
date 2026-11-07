@@ -132,7 +132,7 @@ svg { display: block; }
   font-weight: 800; font-size: 18px; letter-spacing: .04em;
   background: var(--steel-3); border: 2px solid var(--line-hi);
 }
-.topbar.simple .title { flex: 1; font-size: 24px; font-weight: 800; letter-spacing: .14em; }
+.topbar.simple .title { flex: 1; min-width: 0; font-size: 22px; font-weight: 800; letter-spacing: .1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- setup ---------- */
 .step-label {
@@ -542,6 +542,27 @@ textarea.note { height: 140px; padding: 12px 14px; resize: none; font-size: 21px
 .hitem .rt { text-align: right; }
 .hitem .rt b { display: block; font: 800 20px var(--font-num); color: var(--yellow); }
 .hitem .up { font-size: 12px; letter-spacing: .12em; font-weight: 800; color: var(--orange); }
+.text-btn {
+  flex: none; height: 44px; padding: 0 14px; border-radius: 10px;
+  background: var(--steel-3); border: 1px solid var(--line-hi);
+  font-size: 17px; font-weight: 800; letter-spacing: .14em;
+}
+.text-btn:active { transform: translateY(2px); }
+.text-btn.on { background: var(--yellow); color: #171200; border-color: #FFE27A; }
+.icon-btn.danger svg { stroke: #FF6A63; }
+.hitem .ck {
+  display: none; width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--line-hi); background: #0B0D10; position: relative;
+}
+.hist-selecting .hitem { grid-template-columns: 26px auto 1fr auto; }
+.hist-selecting .hitem .ck { display: block; }
+.hitem.sel { border-color: var(--red); box-shadow: 0 0 0 2px rgba(229,50,45,.35); }
+.hitem.sel .ck { background: var(--red); border-color: var(--red); }
+.hitem.sel .ck::after {
+  content: ""; position: absolute; left: 7px; top: 3px; width: 7px; height: 12px;
+  border: solid #fff; border-width: 0 3px 3px 0; transform: rotate(45deg);
+}
+.btn-red.small svg { stroke: #fff; }
 .empty { margin-top: 40px; text-align: center; color: var(--dim); font-size: 20px; letter-spacing: .06em; }
 
 /* ---------- settings ---------- */
